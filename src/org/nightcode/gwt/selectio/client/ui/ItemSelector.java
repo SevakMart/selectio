@@ -24,6 +24,7 @@ import org.nightcode.gwt.selectio.shared.ItemPageProxy;
 import org.nightcode.gwt.selectio.shared.ItemProxy;
 import org.nightcode.gwt.selectio.shared.SelectionProxy;
 
+import com.google.gwt.dom.client.Style;
 import com.google.gwt.cell.client.ValueUpdater;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -102,8 +103,12 @@ public class ItemSelector extends Composite implements ClickHandler {
 
   private final FlowPanel selectedDescription = new FlowPanel();
 
+  private final Anchor search;
   private final Anchor all;
   private final Anchor none;
+  private final Anchor selectFound;
+
+  private boolean selectFoundActive = false;
 
   private int height;
 
@@ -182,18 +187,40 @@ public class ItemSelector extends Composite implements ClickHandler {
     queryField.addKeyUpHandler(new KeyUpHandler() {
       @Override public void onKeyUp(KeyUpEvent event) {
         requestTimer.schedule(300);
+        updateButtonsStyle();
       }
     });
 
-    Anchor search = createAnchor(ItemSelectionModel.Type.SEARCH, messages.search());
+    search = createAnchor(ItemSelectionModel.Type.SEARCH, messages.search());
     all = createAnchor(ItemSelectionModel.Type.ALL, messages.all());
     none = createAnchor(ItemSelectionModel.Type.NONE, messages.none());
+
+    selectFound = new Anchor(messages.selectFound());
+    selectFound.setStyleName("slt-btn slt-btn-link disabled");
+    selectFound.addClickHandler(new ClickHandler() {
+      @Override public void onClick(ClickEvent event) {
+        if (queryField.getText() == null || queryField.getText().isEmpty()) {
+          return;
+        }
+        selectFoundActive = true;
+        selectionModel.setSearch(queryField.getText());
+        selectionModel.setType(ItemSelectionModel.Type.SEARCH.name());
+        updateButtonsStyle();
+      }
+    });
+    selectFound.getElement().getStyle().setProperty("float", "right");
+    selectFound.getElement().getStyle().setProperty("outline", "none");
 
     FlowPanel selectionPanel = new FlowPanel();
     selectionPanel.setStyleName("slt-btn-group");
     selectionPanel.add(search);
     selectionPanel.add(all);
     selectionPanel.add(none);
+
+    FlowPanel buttonToolbar = new FlowPanel();
+    buttonToolbar.setStyleName("slt-btn-toolbar");
+    buttonToolbar.add(selectFound);
+    buttonToolbar.add(selectionPanel);
 
     FlowPanel itemsPanel = new FlowPanel();
     itemsPanel.setStyleName("slt-frame slt-items-box");
@@ -247,7 +274,7 @@ public class ItemSelector extends Composite implements ClickHandler {
     });
 
     attachPanel(mainPanel, queryField, 5);
-    attachPanel(mainPanel, selectionPanel, 5);
+    attachPanel(mainPanel, buttonToolbar, 5);
     attachPanel(mainPanel, itemsPanel, 50);
     attachPanel(mainPanel, pager, 5);
     attachPanel(mainPanel, selectedDescription, 25);
@@ -261,6 +288,7 @@ public class ItemSelector extends Composite implements ClickHandler {
   }
 
   @Override public void onClick(ClickEvent event) {
+    selectFoundActive = false;
     String id = ((Widget) event.getSource()).getElement().getId();
     selectionModel.setType(id);
     updateButtonsStyle();
@@ -273,6 +301,7 @@ public class ItemSelector extends Composite implements ClickHandler {
     for (Map.Entry<ItemProxy, Boolean> entry : exceptions.entrySet()) {
       selectionModel.setSelected(entry.getKey(), entry.getValue());
     }
+    updateButtonsStyle();
   }
 
   private void appendItem(Element parent, final String search) {
@@ -331,22 +360,49 @@ public class ItemSelector extends Composite implements ClickHandler {
     return verticalPanel;
   }
 
+  private void setActive(Anchor anchor, boolean active) {
+    if (active) {
+      anchor.getElement().getStyle().setColor("#000");
+      anchor.getElement().getStyle().setTextDecoration(Style.TextDecoration.UNDERLINE);
+    } else {
+      anchor.getElement().getStyle().clearProperty("color");
+      anchor.getElement().getStyle().clearProperty("textDecoration");
+    }
+  }
+
   private void updateButtonsStyle() {
+    boolean searchEmpty = queryField.getText() == null || queryField.getText().isEmpty();
+    if (searchEmpty) {
+      selectFoundActive = false;
+      selectFound.addStyleName("disabled");
+      setActive(selectFound, false);
+    } else {
+      selectFound.removeStyleName("disabled");
+      setActive(selectFound, selectFoundActive);
+    }
     boolean hasSelection = selectionModel.getExceptions().size() > 0
         || selectionModel.getSearchQueries().size() > 0;
     if (hasSelection) {
-      all.setStyleName("slt-btn slt-btn-link");
-      none.setStyleName("slt-btn slt-btn-link");
+      setActive(search, false);
+      setActive(all, false);
+      setActive(none, false);
     } else {
       switch (selectionModel.getType()) {
         case ALL:
-          all.setStyleName("slt-btn slt-btn-link slt-btn-active");
-          none.setStyleName("slt-btn slt-btn-link");
+          setActive(search, false);
+          setActive(all, true);
+          setActive(none, false);
+          break;
+        case SEARCH:
+          setActive(search, true);
+          setActive(all, false);
+          setActive(none, false);
           break;
         case NONE:
         default:
-          all.setStyleName("slt-btn slt-btn-link");
-          none.setStyleName("slt-btn slt-btn-link slt-btn-active");
+          setActive(search, false);
+          setActive(all, false);
+          setActive(none, true);
           break;
       }
     }

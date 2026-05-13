@@ -51,5 +51,7 @@ public interface SelectorMessages extends Messages {
 
   String search();
 
+  String selectFound();
+
   String selected();
 }
