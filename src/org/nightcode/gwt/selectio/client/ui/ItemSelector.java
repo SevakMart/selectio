@@ -88,8 +88,10 @@ public class ItemSelector extends Composite implements ClickHandler {
       int numSearch = response.getItems().size() == response.getLength() + 1
           ? Integer.MAX_VALUE : response.getStart() + response.getItems().size();
       if (queryField.getText() != null && queryField.getText().equals(response.getQuery())) {
+        hasVisibleItems = !response.getItems().isEmpty();
         dataProvider.updateRowCount(numSearch, numSearch == 0);
         dataProvider.updateRowData(response.getStart(), response.getItems());
+        updateButtonsStyle();
       }
     }
   };
@@ -109,6 +111,7 @@ public class ItemSelector extends Composite implements ClickHandler {
   private final Anchor selectFound;
 
   private boolean selectFoundActive = false;
+  private boolean hasVisibleItems = false;
 
   private int height;
 
@@ -199,12 +202,17 @@ public class ItemSelector extends Composite implements ClickHandler {
     selectFound.setStyleName("slt-btn slt-btn-link disabled");
     selectFound.addClickHandler(new ClickHandler() {
       @Override public void onClick(ClickEvent event) {
-        if (queryField.getText() == null || queryField.getText().isEmpty()) {
-          return;
+        List<ItemProxy> visibleItems = display.getVisibleItems();
+        if (ItemSelectionModel.Type.ALL.equals(selectionModel.getType())) {
+          for (ItemProxy item : visibleItems) {
+            selectionModel.setSelected(item, false);
+          }
+        } else {
+          for (ItemProxy item : visibleItems) {
+            selectionModel.setSelected(item, true);
+          }
         }
         selectFoundActive = true;
-        selectionModel.setSearch(queryField.getText());
-        selectionModel.setType(ItemSelectionModel.Type.SEARCH.name());
         updateButtonsStyle();
       }
     });
@@ -372,7 +380,7 @@ public class ItemSelector extends Composite implements ClickHandler {
 
   private void updateButtonsStyle() {
     boolean searchEmpty = queryField.getText() == null || queryField.getText().isEmpty();
-    if (searchEmpty) {
+    if (searchEmpty && !hasVisibleItems) {
       selectFoundActive = false;
       selectFound.addStyleName("disabled");
       setActive(selectFound, false);
