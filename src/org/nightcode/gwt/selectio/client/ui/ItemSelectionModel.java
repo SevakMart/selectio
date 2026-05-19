@@ -78,7 +78,15 @@ public class ItemSelectionModel extends SelectionModel.AbstractSelectionModel<It
     }
 
     @Override public int compareTo(ItemProxy obj) {
-      return item.getDisplayName().compareTo(obj.getDisplayName());
+      String thisName = item.getDisplayName() != null ? item.getDisplayName() : "";
+      String otherName = obj.getDisplayName() != null ? obj.getDisplayName() : "";
+      int result = thisName.compareTo(otherName);
+      if (result == 0) {
+        String thisId = item.getId() != null ? item.getId() : "";
+        String otherId = obj.getId() != null ? obj.getId() : "";
+        result = thisId.compareTo(otherId);
+      }
+      return result;
     }
   }
 
@@ -181,12 +189,11 @@ public class ItemSelectionModel extends SelectionModel.AbstractSelectionModel<It
       if (search != null && search.length() > 0 && !searchQueries.contains(canonicalize(search))) {
         searchQueries.add(canonicalize(search));
       }
+    } else {
       if (!this.type.equals(tmpType)) {
+        searchQueries.clear();
         clearExceptions();
       }
-    } else {
-      searchQueries.clear();
-      clearExceptions();
     }
     scheduleSelectionChangeEvent();
   }
