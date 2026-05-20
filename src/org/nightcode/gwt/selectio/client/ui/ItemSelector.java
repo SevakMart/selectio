@@ -289,9 +289,26 @@ public class ItemSelector extends Composite implements ClickHandler {
   }
 
   public SelectionProxy fillSelection(SelectionProxy selection) {
-    selection.setExceptions(selectionModel.getExceptions());
-    selection.setSearchQueries(selectionModel.getSearchQueries());
-    selection.setType(selectionModel.getType().name());
+    Map<ItemProxy, Boolean> exceptions = selectionModel.getExceptions();
+    selection.setExceptions(exceptions);
+
+    ItemSelectionModel.Type effectiveType = selectionModel.getType();
+    List<String> effectiveQueries = selectionModel.getSearchQueries();
+    // When the user selected specific items via Select Found (selectFoundActive), convert
+    // SEARCH→NONE so the server uses the explicit IDs rather than a name-pattern search.
+    // Skip conversion if the user explicitly re-clicked a type button (selectFoundActive=false).
+    if (selectFoundActive && ItemSelectionModel.Type.SEARCH.equals(effectiveType)) {
+      for (Map.Entry<ItemProxy, Boolean> entry : exceptions.entrySet()) {
+        if (entry.getValue()) {
+          effectiveType = ItemSelectionModel.Type.NONE;
+          effectiveQueries = new java.util.ArrayList<String>();
+          break;
+        }
+      }
+    }
+
+    selection.setSearchQueries(effectiveQueries);
+    selection.setType(effectiveType.name());
     return selection;
   }
 

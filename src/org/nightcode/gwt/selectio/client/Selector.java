@@ -104,7 +104,7 @@ public class Selector implements EntryPoint {
       @Override public void onClick(ClickEvent event) {
         final SelectionJso selection = SelectionJso.create();
         itemSelector.fillSelection(selection);
-        input.getElement().setAttribute("value", new JSONObject(selection).toString());
+        input.getElement().setPropertyString("value", new JSONObject(selection).toString());
         onChange(function, input.getElement());
         dialogBox.hide();
       }
