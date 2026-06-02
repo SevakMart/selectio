@@ -48,6 +48,7 @@
     height: 490px;
     overflow: hidden;
     position: relative;
+    table-layout: fixed;
     width: 100%;
   }
   .slt-container .slt-btn-group {
