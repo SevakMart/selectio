@@ -44,7 +44,6 @@ import com.google.gwt.user.client.ui.CellPanel;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
-import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
@@ -217,6 +216,7 @@ public class ItemSelector extends Composite implements ClickHandler {
         updateButtonsStyle();
       }
     });
+    selectFound.getElement().getStyle().setProperty("float", "right");
     selectFound.getElement().getStyle().setProperty("outline", "none");
 
     FlowPanel selectionPanel = new FlowPanel();
@@ -225,13 +225,10 @@ public class ItemSelector extends Composite implements ClickHandler {
     selectionPanel.add(all);
     selectionPanel.add(none);
 
-    HorizontalPanel buttonToolbar = new HorizontalPanel();
-    buttonToolbar.setWidth("100%");
+    FlowPanel buttonToolbar = new FlowPanel();
     buttonToolbar.setStyleName("slt-btn-toolbar");
-    buttonToolbar.add(selectionPanel);
-    buttonToolbar.setCellWidth(selectionPanel, "100%");
     buttonToolbar.add(selectFound);
-    buttonToolbar.setCellHorizontalAlignment(selectFound, HasHorizontalAlignment.ALIGN_RIGHT);
+    buttonToolbar.add(selectionPanel);
 
     FlowPanel itemsPanel = new FlowPanel();
     itemsPanel.setStyleName("slt-frame slt-items-box");
