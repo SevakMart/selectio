@@ -142,7 +142,10 @@ public class ItemSelectionModel extends SelectionModel.AbstractSelectionModel<It
         return false;
       case SEARCH:
         for (int i = searchQueries.size() - 1; i >= 0; i--) {
-          if (canonicalize(object.getDisplayName()).contains(searchQueries.get(i))) {
+          String query = searchQueries.get(i);
+          int colonIndex = query.indexOf(':');
+          String matchValue = colonIndex >= 0 ? query.substring(colonIndex + 1) : query;
+          if (!matchValue.isEmpty() && canonicalize(object.getDisplayName()).contains(matchValue)) {
             return true;
           }
         }
