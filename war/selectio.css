@@ -65,12 +65,11 @@
     height: 100%;
     overflow-x: hidden;
     overflow-y: scroll;
-    position: absolute !important;
+    position: absolute;
     width: 100%;
   }
   .slt-items {
-    overflow: hidden;
-    width: 100%;
+    overflow-x: hidden;
   }
     .slt-item {
       border-bottom: 1px solid #E8F0FF;
@@ -92,7 +91,6 @@
         display: block;
         margin-left: 24px;
         overflow: hidden;
-        text-overflow: ellipsis;
         white-space: nowrap;
       }
       .slt-item-description {

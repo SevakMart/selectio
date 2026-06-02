@@ -172,8 +172,6 @@ public class ItemSelector extends Composite implements ClickHandler {
     dataProvider.addDataDisplay(display);
 
     final VerticalPanel mainPanel = createVerticalPanel("slt-container");
-    mainPanel.setWidth("100%");
-    mainPanel.getElement().getStyle().setProperty("tableLayout", "fixed");
     initWidget(mainPanel);
     mainPanel.setSpacing(7);
 
@@ -227,18 +225,16 @@ public class ItemSelector extends Composite implements ClickHandler {
     selectionPanel.add(all);
     selectionPanel.add(none);
 
-    FlowPanel buttonToolbar = new FlowPanel();
-    buttonToolbar.setStyleName("slt-btn-toolbar");
+    HorizontalPanel buttonToolbar = new HorizontalPanel();
     buttonToolbar.setWidth("100%");
-    selectFound.getElement().getStyle().setFloat(Style.Float.RIGHT);
-    buttonToolbar.add(selectFound);
+    buttonToolbar.setStyleName("slt-btn-toolbar");
     buttonToolbar.add(selectionPanel);
+    buttonToolbar.setCellWidth(selectionPanel, "100%");
+    buttonToolbar.add(selectFound);
+    buttonToolbar.setCellHorizontalAlignment(selectFound, HasHorizontalAlignment.ALIGN_RIGHT);
 
     FlowPanel itemsPanel = new FlowPanel();
     itemsPanel.setStyleName("slt-frame slt-items-box");
-    itemsPanel.getElement().getStyle().setOverflow(Style.Overflow.HIDDEN);
-    itemsPanel.getElement().getStyle().setWidth(100, Style.Unit.PCT);
-    display.setWidth("100%");
     itemsPanel.add(display);
 
     final ItemPager pager = new ItemPager(messages);
