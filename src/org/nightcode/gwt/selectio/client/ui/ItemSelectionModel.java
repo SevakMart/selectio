@@ -144,8 +144,13 @@ public class ItemSelectionModel extends SelectionModel.AbstractSelectionModel<It
         for (int i = searchQueries.size() - 1; i >= 0; i--) {
           String query = searchQueries.get(i);
           int colonIndex = query.indexOf(':');
-          String matchValue = colonIndex >= 0 ? query.substring(colonIndex + 1) : query;
-          if (!matchValue.isEmpty() && canonicalize(object.getDisplayName()).contains(matchValue)) {
+          if (colonIndex >= 0) {
+            if (search != null && query.equals(canonicalize(search))) {
+              return true;
+            }
+            continue;
+          }
+          if (!query.isEmpty() && canonicalize(object.getDisplayName()).contains(query)) {
             return true;
           }
         }
@@ -203,10 +208,22 @@ public class ItemSelectionModel extends SelectionModel.AbstractSelectionModel<It
 
   void removeSearchQuery(final String query) {
     searchQueries.remove(query);
-    for (Map.Entry<ItemProxy, Boolean> entry : exceptions.entrySet()) {
-      if (entry.getKey().getDisplayName().contains(query)) {
-        exceptions.remove(entry.getKey());
+    List<ItemProxy> toRemove = new ArrayList<ItemProxy>();
+    if (query.contains(":")) {
+      for (Map.Entry<ItemProxy, Boolean> entry : exceptions.entrySet()) {
+        if (entry.getValue()) {
+          toRemove.add(entry.getKey());
+        }
       }
+    } else {
+      for (Map.Entry<ItemProxy, Boolean> entry : exceptions.entrySet()) {
+        if (entry.getKey().getDisplayName().contains(query)) {
+          toRemove.add(entry.getKey());
+        }
+      }
+    }
+    for (ItemProxy item : toRemove) {
+      exceptions.remove(new ItemWrapper(item));
     }
     scheduleSelectionChangeEvent();
   }
