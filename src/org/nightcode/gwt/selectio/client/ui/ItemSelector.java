@@ -25,6 +25,7 @@ import org.nightcode.gwt.selectio.shared.ItemProxy;
 import org.nightcode.gwt.selectio.shared.SelectionProxy;
 
 import com.google.gwt.dom.client.Style;
+import com.google.gwt.dom.client.StyleInjector;
 import com.google.gwt.cell.client.ValueUpdater;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -38,6 +39,7 @@ import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Element;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.EventListener;
+import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.CellPanel;
@@ -112,6 +114,18 @@ public class ItemSelector extends Composite implements ClickHandler {
 
   private boolean selectFoundActive = false;
   private boolean hasVisibleItems = false;
+  private SelectorRequestFactory requestFactory;
+  private Timer requestTimer;
+
+  private final Receiver<ItemPageProxy> tagItemsReceiver = new Receiver<ItemPageProxy>() {
+    @Override public void onSuccess(ItemPageProxy response) {
+      List<ItemProxy> items = response.getItems();
+      int addCount = (items.size() == response.getLength() + 1) ? response.getLength() : items.size();
+      for (int i = 0; i < addCount; i++) {
+        selectionModel.setSelected(items.get(i), true);
+      }
+    }
+  };
 
   private int height;
 
@@ -140,6 +154,8 @@ public class ItemSelector extends Composite implements ClickHandler {
 
   public ItemSelector(final SelectorRequestFactory requestFactory, int height, int pageSize) {
     this.height = height;
+    this.requestFactory = requestFactory;
+    StyleInjector.inject(".slt-item-name { text-overflow: ellipsis !important; }");
 
     final CellList.Resources cellListResources = GWT.create(CellListResources.class);
 
@@ -171,10 +187,12 @@ public class ItemSelector extends Composite implements ClickHandler {
     dataProvider.addDataDisplay(display);
 
     final VerticalPanel mainPanel = createVerticalPanel("slt-container");
+    mainPanel.setWidth("100%");
+    mainPanel.getElement().getStyle().setProperty("tableLayout", "fixed");
     initWidget(mainPanel);
     mainPanel.setSpacing(7);
 
-    final Timer requestTimer = new Timer() {
+    requestTimer = new Timer() {
       @Override public void run() {
         selectionModel.setSearch(queryField.getText());
         Range[] searchRanges = dataProvider.getRanges();
@@ -261,7 +279,17 @@ public class ItemSelector extends Composite implements ClickHandler {
         for (int i = searchQueries.size() - 1; i >= 0; i--) {
           appendItem(selectedUl, searchQueries.get(i));
         }
+        boolean hasTagQuery = false;
+        for (int i = searchQueries.size() - 1; i >= 0; i--) {
+          if (searchQueries.get(i).contains(":")) {
+            hasTagQuery = true;
+            break;
+          }
+        }
         for (Map.Entry<ItemProxy, Boolean> entry : exceptions.entrySet()) {
+          if (entry.getValue() && hasTagQuery) {
+            continue;
+          }
           Element parent = (entry.getValue()) ? selectedUl : deselectedUl;
           appendItem(parent, entry.getKey());
         }
@@ -289,8 +317,26 @@ public class ItemSelector extends Composite implements ClickHandler {
   }
 
   public SelectionProxy fillSelection(SelectionProxy selection) {
-    selection.setExceptions(selectionModel.getExceptions());
-    selection.setSearchQueries(selectionModel.getSearchQueries());
+    List<String> queries = selectionModel.getSearchQueries();
+    boolean hasTagQuery = false;
+    for (int i = queries.size() - 1; i >= 0; i--) {
+      if (queries.get(i).contains(":")) {
+        hasTagQuery = true;
+        break;
+      }
+    }
+    if (hasTagQuery) {
+      Map<ItemProxy, Boolean> filtered = new java.util.HashMap<ItemProxy, Boolean>();
+      for (Map.Entry<ItemProxy, Boolean> entry : selectionModel.getExceptions().entrySet()) {
+        if (!entry.getValue()) {
+          filtered.put(entry.getKey(), entry.getValue());
+        }
+      }
+      selection.setExceptions(filtered);
+    } else {
+      selection.setExceptions(selectionModel.getExceptions());
+    }
+    selection.setSearchQueries(queries);
     selection.setType(selectionModel.getType().name());
     return selection;
   }
@@ -299,6 +345,12 @@ public class ItemSelector extends Composite implements ClickHandler {
     selectFoundActive = false;
     String id = ((Widget) event.getSource()).getElement().getId();
     selectionModel.setType(id);
+    if (ItemSelectionModel.Type.SEARCH.name().equals(id)
+        && queryField.getText() != null && queryField.getText().contains(":")) {
+      for (ItemProxy item : display.getVisibleItems()) {
+        selectionModel.setSelected(item, true);
+      }
+    }
     updateButtonsStyle();
   }
 
@@ -308,6 +360,24 @@ public class ItemSelector extends Composite implements ClickHandler {
     Map<ItemProxy, Boolean> exceptions = selection.getExceptions();
     for (Map.Entry<ItemProxy, Boolean> entry : exceptions.entrySet()) {
       selectionModel.setSelected(entry.getKey(), entry.getValue());
+    }
+    if (ItemSelectionModel.Type.SEARCH.name().equals(selection.getType())) {
+      for (String query : selection.getSearchQueries()) {
+        if (query.contains(":")) {
+          final String tagQuery = query.toLowerCase();
+          Scheduler.get().scheduleDeferred(new Scheduler.ScheduledCommand() {
+            @Override public void execute() {
+              Range[] ranges = dataProvider.getRanges();
+              if (ranges != null && ranges.length > 0) {
+                requestFactory.itemRequest()
+                    .getItems(tagQuery, 0, ranges[0].getLength() + 1)
+                    .fire(tagItemsReceiver);
+              }
+            }
+          });
+          break;
+        }
+      }
     }
     updateButtonsStyle();
   }
